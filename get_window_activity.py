@@ -1,6 +1,13 @@
 import os, re, sys, time
 from subprocess import PIPE, Popen
 
+if sys.platform == "darwin":
+    from AppKit import NSWorkspace
+    from Quartz import (
+        CGWindowListCopyWindowInfo,
+        kCGWindowListOptionOnScreenOnly,
+        kCGNullWindowID
+    )
 
 def get_activityname():
     if sys.platform == "linux":
@@ -49,13 +56,24 @@ def get_activityname():
             'pid': None
             }
     elif sys.platform == "darwin":
-        print("Not implemented for darwin platform!")
-        return {
-            'windowname':   None,
-            'processname1': None,
-            'processname2': None,
-            'pid': None
-            }
+        curr_app = NSWorkspace.sharedWorkspace().frontmostApplication()
+        curr_pid = NSWorkspace.sharedWorkspace().activeApplication()['NSApplicationProcessIdentifier']
+        curr_app_name = curr_app.localizedName()
+        options = kCGWindowListOptionOnScreenOnly
+        windowList = CGWindowListCopyWindowInfo(options, kCGNullWindowID)
+        for window in windowList:
+            pid = window['kCGWindowOwnerPID']
+            windowNumber = window['kCGWindowNumber']
+            ownerName = window['kCGWindowOwnerName']
+            geometry = window['kCGWindowBounds']
+            windowTitle = window.get('kCGWindowName', u'Unknown')
+            if curr_pid == pid:
+                return {
+                    'windowname':   windowTitle,
+                    'processname1': ownerName,
+                    'processname2': None,
+                    'pid': pid
+                    }
     elif sys.platform == "win32":
         print("Not implemented for win32 platform!")
         return {
